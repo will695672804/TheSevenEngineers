@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # THE SEVEN ENGINEER - Centre de Formation et Bureau d'Étude
 
 ## 🎓 À propos
@@ -208,3 +209,4 @@ Ce projet est développé pour THE SEVEN ENGINEER. Pour contribuer :
 ---
 
 *"La qualité au service de tous"* - THE SEVEN ENGINEER
+=======
