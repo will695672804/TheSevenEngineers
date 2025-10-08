@@ -1,23 +1,25 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Search, Filter, Star, Clock, Users, BookOpen } from 'lucide-react';
-import { useCourses } from '../contexts/CoursesContext';
+import { BookOpen, Clock, Filter, Search, Star, Users } from "lucide-react";
+import React, { useState } from "react";
+import { Link } from "react-router-dom";
+import { useCourses } from "../contexts/CoursesContext";
 
 const CoursesPage: React.FC = () => {
   const { courses } = useCourses();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('');
-  const [selectedLevel, setSelectedLevel] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("");
+  const [selectedLevel, setSelectedLevel] = useState("");
 
-  const categories = [...new Set(courses.map(course => course.category))];
-  const levels = [...new Set(courses.map(course => course.level))];
+  const categories = [...new Set(courses.map((course) => course.category))];
+  const levels = [...new Set(courses.map((course) => course.level))];
 
-  const filteredCourses = courses.filter(course => {
-    const matchesSearch = course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         course.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = !selectedCategory || course.category === selectedCategory;
+  const filteredCourses = courses.filter((course) => {
+    const matchesSearch =
+      course.title.toLowerCase().startsWith(searchTerm.toLowerCase()) ||
+      course.description.toLowerCase().startsWith(searchTerm.toLowerCase());
+    const matchesCategory =
+      !selectedCategory || course.category === selectedCategory;
     const matchesLevel = !selectedLevel || course.level === selectedLevel;
-    
+
     return matchesSearch && matchesCategory && matchesLevel;
   });
 
@@ -26,9 +28,12 @@ const CoursesPage: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">Nos Pôles de Formation</h1>
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">
+            Nos Pôles de Formation
+          </h1>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            Développez vos compétences techniques avec nos 10 pôles de formation spécialisés en sciences de l'ingénieur
+            Développez vos compétences techniques avec nos 10 pôles de formation
+            spécialisés en sciences de l'ingénieur
           </p>
         </div>
 
@@ -45,15 +50,17 @@ const CoursesPage: React.FC = () => {
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
-            
+
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
               className="px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">Toutes les catégories</option>
-              {categories.map(category => (
-                <option key={category} value={category}>{category}</option>
+              {categories.map((category) => (
+                <option key={category} value={category}>
+                  {category}
+                </option>
               ))}
             </select>
 
@@ -63,8 +70,10 @@ const CoursesPage: React.FC = () => {
               className="px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">Tous les niveaux</option>
-              {levels.map(level => (
-                <option key={level} value={level}>{level}</option>
+              {levels.map((level) => (
+                <option key={level} value={level}>
+                  {level}
+                </option>
               ))}
             </select>
 
@@ -78,14 +87,19 @@ const CoursesPage: React.FC = () => {
         {/* Results count */}
         <div className="mb-6">
           <p className="text-gray-600">
-            {filteredCourses.length} formation{filteredCourses.length > 1 ? 's' : ''} trouvée{filteredCourses.length > 1 ? 's' : ''}
+            {filteredCourses.length} formation
+            {filteredCourses.length > 1 ? "s" : ""} trouvée
+            {filteredCourses.length > 1 ? "s" : ""}
           </p>
         </div>
 
         {/* Courses Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {filteredCourses.map(course => (
-            <div key={course.id} className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
+          {filteredCourses.map((course) => (
+            <div
+              key={course.id}
+              className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow"
+            >
               <div className="relative">
                 <img
                   src={course.image}
@@ -99,11 +113,15 @@ const CoursesPage: React.FC = () => {
                   {course.category}
                 </div>
               </div>
-              
+
               <div className="p-6">
-                <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-2">{course.title}</h3>
-                <p className="text-gray-600 text-sm mb-4 line-clamp-3">{course.description}</p>
-                
+                <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-2">
+                  {course.title}
+                </h3>
+                <p className="text-gray-600 text-sm mb-4 line-clamp-3">
+                  {course.description}
+                </p>
+
                 <div className="flex items-center text-sm text-gray-500 mb-4">
                   <span>Par {course.instructor}</span>
                 </div>
@@ -112,7 +130,9 @@ const CoursesPage: React.FC = () => {
                   <div className="flex items-center space-x-4">
                     <div className="flex items-center">
                       <Star className="h-4 w-4 text-yellow-400 fill-current" />
-                      <span className="text-sm font-medium ml-1">{course.rating}</span>
+                      <span className="text-sm font-medium ml-1">
+                        {course.rating}
+                      </span>
                     </div>
                     <div className="flex items-center text-gray-500">
                       <Users className="h-4 w-4 mr-1" />
@@ -126,7 +146,9 @@ const CoursesPage: React.FC = () => {
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <span className="text-2xl font-bold text-blue-600">{course.price}€</span>
+                  <span className="text-2xl font-bold text-blue-600">
+                    {course.price}€
+                  </span>
                   <Link
                     to={`/course/${course.id}`}
                     className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
@@ -142,8 +164,12 @@ const CoursesPage: React.FC = () => {
         {filteredCourses.length === 0 && (
           <div className="text-center py-12">
             <BookOpen className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-xl font-medium text-gray-900 mb-2">Aucune formation trouvée</h3>
-            <p className="text-gray-600">Essayez de modifier vos critères de recherche</p>
+            <h3 className="text-xl font-medium text-gray-900 mb-2">
+              Aucune formation trouvée
+            </h3>
+            <p className="text-gray-600">
+              Essayez de modifier vos critères de recherche
+            </p>
           </div>
         )}
       </div>

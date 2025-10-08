@@ -1,9 +1,18 @@
-import React, { useState } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { ShoppingCart, User, MessageCircle, Search, Menu, X, LogOut, Settings, BookOpen } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
-import { useCart } from '../../contexts/CartContext';
-import { useMessaging } from '../../contexts/MessagingContext';
+import {
+  LogOut,
+  Menu,
+  MessageCircle,
+  Search,
+  Settings,
+  ShoppingCart,
+  User,
+  X,
+} from "lucide-react";
+import React, { useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "../../contexts/AuthContext";
+import { useCart } from "../../contexts/CartContext";
+import { useMessaging } from "../../contexts/MessagingContext";
 
 interface HeaderProps {
   onToggleMessaging: () => void;
@@ -21,13 +30,13 @@ const Header: React.FC<HeaderProps> = ({ onToggleMessaging }) => {
   const handleLogout = () => {
     logout();
     setShowUserMenu(false);
-    navigate('/');
+    navigate("/");
   };
 
   const navItems = [
-    { path: '/', label: 'Accueil' },
-    { path: '/courses', label: 'Formations' },
-    { path: '/shop', label: 'Boutique' }
+    { path: "/", label: "Accueil" },
+    { path: "/courses", label: "Formations" },
+    { path: "/shop", label: "Boutique" },
   ];
 
   return (
@@ -36,8 +45,11 @@ const Header: React.FC<HeaderProps> = ({ onToggleMessaging }) => {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2">
-            <div className="bg-blue-600 text-white p-2 rounded-lg">
-              <BookOpen className="h-6 w-6" />
+            <div className="logo">
+              <img
+                src="/images/THE7E_LOGO.png"
+                className="w-9 h-9 object-contain"
+              />
             </div>
             <div>
               <span className="text-xl font-bold text-gray-900">THE7E</span>
@@ -47,14 +59,14 @@ const Header: React.FC<HeaderProps> = ({ onToggleMessaging }) => {
 
           {/* Navigation Desktop */}
           <nav className="hidden md:flex space-x-8">
-            {navItems.map(item => (
+            {navItems.map((item) => (
               <Link
                 key={item.path}
                 to={item.path}
                 className={`px-3 py-2 text-sm font-medium transition-colors ${
                   location.pathname === item.path
-                    ? 'text-blue-600 border-b-2 border-blue-600'
-                    : 'text-gray-700 hover:text-blue-600'
+                    ? "text-blue-600 border-b-2 border-blue-600"
+                    : "text-gray-700 hover:text-blue-600"
                 }`}
               >
                 {item.label}
@@ -134,7 +146,7 @@ const Header: React.FC<HeaderProps> = ({ onToggleMessaging }) => {
                       <User className="h-4 w-4" />
                       <span>Mon Profil</span>
                     </Link>
-                    {user.role === 'admin' && (
+                    {user.role === "admin" && (
                       <Link
                         to="/admin"
                         className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
@@ -168,7 +180,11 @@ const Header: React.FC<HeaderProps> = ({ onToggleMessaging }) => {
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className="md:hidden p-2 text-gray-700"
             >
-              {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+              {isMenuOpen ? (
+                <X className="h-6 w-6" />
+              ) : (
+                <Menu className="h-6 w-6" />
+              )}
             </button>
           </div>
         </div>
@@ -177,14 +193,14 @@ const Header: React.FC<HeaderProps> = ({ onToggleMessaging }) => {
         {isMenuOpen && (
           <div className="md:hidden border-t border-gray-200 py-4">
             <nav className="space-y-2">
-              {navItems.map(item => (
+              {navItems.map((item) => (
                 <Link
                   key={item.path}
                   to={item.path}
                   className={`block px-3 py-2 text-sm font-medium transition-colors ${
                     location.pathname === item.path
-                      ? 'text-blue-600 bg-blue-50'
-                      : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50'
+                      ? "text-blue-600 bg-blue-50"
+                      : "text-gray-700 hover:text-blue-600 hover:bg-gray-50"
                   }`}
                   onClick={() => setIsMenuOpen(false)}
                 >
