@@ -1,33 +1,35 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Search, Star, ShoppingCart, Grid, List } from 'lucide-react';
-import { useProducts } from '../contexts/ProductsContext';
-import { useCart } from '../contexts/CartContext';
+import { Grid, List, Search, ShoppingCart, Star } from "lucide-react";
+import React, { useState } from "react";
+import { Link } from "react-router-dom";
+import { useCart } from "../contexts/CartContext";
+import { useProducts } from "../contexts/ProductsContext";
 
 const ShopPage: React.FC = () => {
   const { products } = useProducts();
   const { addToCart } = useCart();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('');
-  const [sortBy, setSortBy] = useState('name');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("");
+  const [sortBy, setSortBy] = useState("name");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
-  const categories = [...new Set(products.map(product => product.category))];
+  const categories = [...new Set(products.map((product) => product.category))];
 
   const filteredProducts = products
-    .filter(product => {
-      const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           product.description.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesCategory = !selectedCategory || product.category === selectedCategory;
+    .filter((product) => {
+      const matchesSearch =
+        product.name.toLowerCase().startsWith(searchTerm.toLowerCase()) ||
+        product.description.toLowerCase().startsWith(searchTerm.toLowerCase());
+      const matchesCategory =
+        !selectedCategory || product.category === selectedCategory;
       return matchesSearch && matchesCategory;
     })
     .sort((a, b) => {
       switch (sortBy) {
-        case 'price-low':
+        case "price-low":
           return a.price - b.price;
-        case 'price-high':
+        case "price-high":
           return b.price - a.price;
-        case 'rating':
+        case "rating":
           return b.rating - a.rating;
         default:
           return a.name.localeCompare(b.name);
@@ -35,8 +37,7 @@ const ShopPage: React.FC = () => {
     });
 
   const handleAddToCart = (product: any) => {
-    addToCart(product.id, 'product', 1);
-
+    addToCart(product.id, "product", 1);
   };
 
   return (
@@ -44,9 +45,12 @@ const ShopPage: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">Matériel et Équipements</h1>
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">
+            Matériel et Équipements
+          </h1>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            Composants électroniques, matériel de laboratoire et équipements industriels de qualité
+            Composants électroniques, matériel de laboratoire et équipements
+            industriels de qualité
           </p>
         </div>
 
@@ -63,15 +67,17 @@ const ShopPage: React.FC = () => {
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
               />
             </div>
-            
+
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
               className="px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
             >
               <option value="">Toutes les catégories</option>
-              {categories.map(category => (
-                <option key={category} value={category}>{category}</option>
+              {categories.map((category) => (
+                <option key={category} value={category}>
+                  {category}
+                </option>
               ))}
             </select>
 
@@ -88,14 +94,22 @@ const ShopPage: React.FC = () => {
 
             <div className="flex items-center space-x-2">
               <button
-                onClick={() => setViewMode('grid')}
-                className={`p-3 rounded-lg ${viewMode === 'grid' ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-600'}`}
+                onClick={() => setViewMode("grid")}
+                className={`p-3 rounded-lg ${
+                  viewMode === "grid"
+                    ? "bg-green-600 text-white"
+                    : "bg-gray-200 text-gray-600"
+                }`}
               >
                 <Grid className="h-5 w-5" />
               </button>
               <button
-                onClick={() => setViewMode('list')}
-                className={`p-3 rounded-lg ${viewMode === 'list' ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-600'}`}
+                onClick={() => setViewMode("list")}
+                className={`p-3 rounded-lg ${
+                  viewMode === "list"
+                    ? "bg-green-600 text-white"
+                    : "bg-gray-200 text-gray-600"
+                }`}
               >
                 <List className="h-5 w-5" />
               </button>
@@ -106,15 +120,20 @@ const ShopPage: React.FC = () => {
         {/* Results count */}
         <div className="mb-6">
           <p className="text-gray-600">
-            {filteredProducts.length} produit{filteredProducts.length > 1 ? 's' : ''} trouvé{filteredProducts.length > 1 ? 's' : ''}
+            {filteredProducts.length} produit
+            {filteredProducts.length > 1 ? "s" : ""} trouvé
+            {filteredProducts.length > 1 ? "s" : ""}
           </p>
         </div>
 
         {/* Products Grid/List */}
-        {viewMode === 'grid' ? (
+        {viewMode === "grid" ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredProducts.map(product => (
-              <div key={product.id} className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
+            {filteredProducts.map((product) => (
+              <div
+                key={product.id}
+                className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow"
+              >
                 <div className="relative group">
                   <img
                     src={product.image}
@@ -135,29 +154,41 @@ const ShopPage: React.FC = () => {
                     </button>
                   </div>
                 </div>
-                
+
                 <div className="p-4">
                   <div className="mb-2">
                     <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
                       {product.category}
                     </span>
                   </div>
-                  <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2">{product.name}</h3>
-                  <p className="text-gray-600 text-sm mb-3 line-clamp-2">{product.description}</p>
-                  
+                  <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2">
+                    {product.name}
+                  </h3>
+                  <p className="text-gray-600 text-sm mb-3 line-clamp-2">
+                    {product.description}
+                  </p>
+
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center space-x-2">
                       <div className="flex items-center">
                         <Star className="h-4 w-4 text-yellow-400 fill-current" />
-                        <span className="text-sm font-medium ml-1">{product.rating}</span>
+                        <span className="text-sm font-medium ml-1">
+                          {product.rating}
+                        </span>
                       </div>
-                      <span className="text-sm text-gray-500">({product.reviewsCount})</span>
+                      <span className="text-sm text-gray-500">
+                        ({product.reviewsCount})
+                      </span>
                     </div>
-                    <span className="text-sm text-gray-500">{product.stock} en stock</span>
+                    <span className="text-sm text-gray-500">
+                      {product.stock} en stock
+                    </span>
                   </div>
 
                   <div className="flex items-center justify-between">
-                    <span className="text-xl font-bold text-green-600">{product.price}€</span>
+                    <span className="text-xl font-bold text-green-600">
+                      {product.price}€
+                    </span>
                     <Link
                       to={`/product/${product.id}`}
                       className="text-green-600 hover:text-green-700 text-sm font-medium"
@@ -171,8 +202,11 @@ const ShopPage: React.FC = () => {
           </div>
         ) : (
           <div className="space-y-4">
-            {filteredProducts.map(product => (
-              <div key={product.id} className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
+            {filteredProducts.map((product) => (
+              <div
+                key={product.id}
+                className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow"
+              >
                 <div className="flex">
                   <div className="w-48 h-32 flex-shrink-0">
                     <img
@@ -189,29 +223,46 @@ const ShopPage: React.FC = () => {
                             {product.category}
                           </span>
                         </div>
-                        <h3 className="text-xl font-bold text-gray-900 mb-2">{product.name}</h3>
-                        <p className="text-gray-600 mb-4">{product.description}</p>
-                        
+                        <h3 className="text-xl font-bold text-gray-900 mb-2">
+                          {product.name}
+                        </h3>
+                        <p className="text-gray-600 mb-4">
+                          {product.description}
+                        </p>
+
                         <div className="flex items-center space-x-4 mb-4">
                           <div className="flex items-center">
                             <Star className="h-4 w-4 text-yellow-400 fill-current" />
-                            <span className="text-sm font-medium ml-1">{product.rating}</span>
-                            <span className="text-sm text-gray-500 ml-1">({product.reviewsCount} avis)</span>
+                            <span className="text-sm font-medium ml-1">
+                              {product.rating}
+                            </span>
+                            <span className="text-sm text-gray-500 ml-1">
+                              ({product.reviewsCount} avis)
+                            </span>
                           </div>
-                          <span className="text-sm text-gray-500">{product.stock} en stock</span>
+                          <span className="text-sm text-gray-500">
+                            {product.stock} en stock
+                          </span>
                         </div>
 
                         <div className="flex flex-wrap gap-2">
-                          {product.features.slice(0, 3).map((feature, index) => (
-                            <span key={index} className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                              {feature}
-                            </span>
-                          ))}
+                          {product.features
+                            .slice(0, 3)
+                            .map((feature, index) => (
+                              <span
+                                key={index}
+                                className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded"
+                              >
+                                {feature}
+                              </span>
+                            ))}
                         </div>
                       </div>
-                      
+
                       <div className="text-right ml-6">
-                        <div className="text-2xl font-bold text-green-600 mb-4">{product.price}€</div>
+                        <div className="text-2xl font-bold text-green-600 mb-4">
+                          {product.price}€
+                        </div>
                         <div className="space-y-2">
                           <button
                             onClick={() => handleAddToCart(product)}
@@ -239,8 +290,12 @@ const ShopPage: React.FC = () => {
         {filteredProducts.length === 0 && (
           <div className="text-center py-12">
             <ShoppingCart className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-xl font-medium text-gray-900 mb-2">Aucun produit trouvé</h3>
-            <p className="text-gray-600">Essayez de modifier vos critères de recherche</p>
+            <h3 className="text-xl font-medium text-gray-900 mb-2">
+              Aucun produit trouvé
+            </h3>
+            <p className="text-gray-600">
+              Essayez de modifier vos critères de recherche
+            </p>
           </div>
         )}
       </div>

@@ -1,18 +1,18 @@
 /*import React, { useState } from 'react';*/
-import { Routes, Route, Link, useLocation } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  BookOpen, 
-  ShoppingBag, 
-  Users, 
-  MessageCircle, 
-  Settings,
+import {
+  BarChart3,
+  BookOpen,
+  LayoutDashboard,
+  MessageCircle,
   Plus,
-  BarChart3
-} from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
-import AdminCoursesManager from './AdminCoursesManager';
-import AdminProductsManager from './AdminProductsManager';
+  Settings,
+  ShoppingBag,
+  Users,
+} from "lucide-react";
+import { Link, Route, Routes, useLocation } from "react-router-dom";
+import { useAuth } from "../../contexts/AuthContext";
+import AdminCoursesManager from "./AdminCoursesManager";
+import AdminProductsManager from "./AdminProductsManager";
 
 const AdminDashboard: React.FC = () => {
   const { user } = useAuth();
@@ -20,33 +20,64 @@ const AdminDashboard: React.FC = () => {
   /*const [activeTab, setActiveTab] = useState('overview');*/
 
   const sidebarItems = [
-    { id: 'overview', label: 'Vue d\'ensemble', icon: LayoutDashboard, path: '/admin' },
-    { id: 'courses', label: 'Formations', icon: BookOpen, path: '/admin/courses' },
-    { id: 'products', label: 'Produits', icon: ShoppingBag, path: '/admin/products' },
-    { id: 'users', label: 'Utilisateurs', icon: Users, path: '/admin/users' },
-    { id: 'messages', label: 'Messages', icon: MessageCircle, path: '/admin/messages' },
-    { id: 'settings', label: 'Paramètres', icon: Settings, path: '/admin/settings' }
+    {
+      id: "overview",
+      label: "Vue d'ensemble",
+      icon: LayoutDashboard,
+      path: "/admin",
+    },
+    {
+      id: "courses",
+      label: "Formations",
+      icon: BookOpen,
+      path: "/admin/courses",
+    },
+    {
+      id: "products",
+      label: "Produits",
+      icon: ShoppingBag,
+      path: "/admin/products",
+    },
+    { id: "users", label: "Utilisateurs", icon: Users, path: "/admin/users" },
+    {
+      id: "messages",
+      label: "Messages",
+      icon: MessageCircle,
+      path: "/admin/messages",
+    },
+    {
+      id: "settings",
+      label: "Paramètres",
+      icon: Settings,
+      path: "/admin/settings",
+    },
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="flex">
+    <div
+      className="bg-gray-50 overflow-hidden"
+      style={{ height: "calc(100vh - 64px)" }}
+    >
+      <div className="flex overflow-hidden">
         {/* Sidebar */}
-        <div className="w-64 bg-white shadow-sm border-r border-gray-200 min-h-screen">
+        <div
+          className="w-64 bg-white shadow-sm border-r border-gray-200"
+          style={{ height: "calc(100vh - 64px)" }}
+        >
           <div className="p-6 border-b border-gray-200">
             <h2 className="text-xl font-bold text-gray-900">Administration</h2>
             <p className="text-sm text-gray-600">Bienvenue, {user?.name}</p>
           </div>
-          
+
           <nav className="p-4 space-y-2">
-            {sidebarItems.map(item => (
+            {sidebarItems.map((item) => (
               <Link
                 key={item.id}
                 to={item.path}
                 className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
                   location.pathname === item.path
-                    ? 'bg-blue-50 text-blue-600 border border-blue-200'
-                    : 'text-gray-700 hover:bg-gray-50'
+                    ? "bg-blue-50 text-blue-600 border border-blue-200"
+                    : "text-gray-700 hover:bg-gray-50"
                 }`}
               >
                 <item.icon className="h-5 w-5" />
@@ -57,7 +88,7 @@ const AdminDashboard: React.FC = () => {
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 p-8">
+        <div className="flex-1 p-8 h-[calc(100dvh)] overflow-auto pb-24">
           <Routes>
             <Route path="/" element={<AdminOverview />} />
             <Route path="/courses" element={<AdminCoursesManager />} />
@@ -103,12 +134,14 @@ const AdminOverview: React.FC = () => {
               <BookOpen className="h-6 w-6 text-blue-600" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Pôles de Formation</p>
+              <p className="text-sm font-medium text-gray-600">
+                Pôles de Formation
+              </p>
               <p className="text-2xl font-bold text-gray-900">10</p>
             </div>
           </div>
         </div>
-        
+
         <div className="bg-white rounded-xl shadow-sm p-6">
           <div className="flex items-center">
             <div className="bg-green-100 p-3 rounded-lg">
@@ -120,7 +153,7 @@ const AdminOverview: React.FC = () => {
             </div>
           </div>
         </div>
-        
+
         <div className="bg-white rounded-xl shadow-sm p-6">
           <div className="flex items-center">
             <div className="bg-purple-100 p-3 rounded-lg">
@@ -132,7 +165,7 @@ const AdminOverview: React.FC = () => {
             </div>
           </div>
         </div>
-        
+
         <div className="bg-white rounded-xl shadow-sm p-6">
           <div className="flex items-center">
             <div className="bg-orange-100 p-3 rounded-lg">
@@ -149,13 +182,20 @@ const AdminOverview: React.FC = () => {
       {/* Recent Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white rounded-xl shadow-sm p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-6">Activité récente</h2>
+          <h2 className="text-xl font-bold text-gray-900 mb-6">
+            Activité récente
+          </h2>
           <div className="space-y-4">
-            {[1, 2, 3, 4].map(item => (
-              <div key={item} className="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
+            {[1, 2, 3, 4].map((item) => (
+              <div
+                key={item}
+                className="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg"
+              >
                 <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-gray-900">Nouvelle inscription à "Solaire Photovoltaïque"</p>
+                  <p className="text-sm font-medium text-gray-900">
+                    Nouvelle inscription à "Solaire Photovoltaïque"
+                  </p>
                   <p className="text-xs text-gray-500">Il y a 2 heures</p>
                 </div>
               </div>
@@ -164,14 +204,23 @@ const AdminOverview: React.FC = () => {
         </div>
 
         <div className="bg-white rounded-xl shadow-sm p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-6">Messages récents</h2>
+          <h2 className="text-xl font-bold text-gray-900 mb-6">
+            Messages récents
+          </h2>
           <div className="space-y-4">
-            {[1, 2, 3].map(item => (
-              <div key={item} className="flex items-start space-x-4 p-3 bg-gray-50 rounded-lg">
+            {[1, 2, 3].map((item) => (
+              <div
+                key={item}
+                className="flex items-start space-x-4 p-3 bg-gray-50 rounded-lg"
+              >
                 <div className="w-8 h-8 bg-gray-300 rounded-full"></div>
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-gray-900">Utilisateur {item}</p>
-                  <p className="text-xs text-gray-600">Question sur la formation Domotique...</p>
+                  <p className="text-sm font-medium text-gray-900">
+                    Utilisateur {item}
+                  </p>
+                  <p className="text-xs text-gray-600">
+                    Question sur la formation Domotique...
+                  </p>
                   <p className="text-xs text-gray-500">Il y a 1 heure</p>
                 </div>
               </div>
@@ -186,9 +235,13 @@ const AdminOverview: React.FC = () => {
 const AdminUsersManager: React.FC = () => {
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold text-gray-900">Gestion des utilisateurs</h1>
+      <h1 className="text-3xl font-bold text-gray-900">
+        Gestion des utilisateurs
+      </h1>
       <div className="bg-white rounded-xl shadow-sm p-6">
-        <p className="text-gray-600">Interface de gestion des utilisateurs à implémenter</p>
+        <p className="text-gray-600">
+          Interface de gestion des utilisateurs à implémenter
+        </p>
       </div>
     </div>
   );
@@ -199,7 +252,9 @@ const AdminMessagesManager: React.FC = () => {
     <div className="space-y-6">
       <h1 className="text-3xl font-bold text-gray-900">Gestion des messages</h1>
       <div className="bg-white rounded-xl shadow-sm p-6">
-        <p className="text-gray-600">Interface de gestion des messages à implémenter</p>
+        <p className="text-gray-600">
+          Interface de gestion des messages à implémenter
+        </p>
       </div>
     </div>
   );

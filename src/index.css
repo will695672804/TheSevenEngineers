@@ -1,3 +1,28 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+.logo {
+  background-image: url("/images/THE7E_LOGO.png");
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+/* ...existing code... */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .invoice-content,
+  .invoice-content * {
+    visibility: visible;
+  }
+  .invoice-content {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100vw;
+  }
+}
+/* ...existing code... */
