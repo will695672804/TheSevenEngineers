@@ -1,24 +1,76 @@
-import React, { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Play, Clock, Star, BookOpen, CheckCircle, ShoppingCart } from 'lucide-react';
 import { useCourses } from '../contexts/CoursesContext';
 import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
 
 const CourseDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const { courses, enrollInCourse, markLessonComplete } = useCourses();
+  const { courses, enrollInCourse, markLessonComplete, fetchCourseById } = useCourses();
   const { addToCart } = useCart();
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<'overview' | 'curriculum' | 'reviews'>('overview');
+  const toast = useToast();
+  const navigate = useNavigate();
 
-  const course = courses.find(c => c.id === id);
+  type Course = (typeof courses)[number] | null;
+  type TabId = 'overview' | 'curriculum' | 'reviews';
 
-  if (!course) {
+  const [localCourse, setLocalCourse] = useState<Course>(() => courses.find(c => c.id === id) ?? null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      if (!id) {
+        setError('ID de formation manquant');
+        return;
+      }
+
+      const fromCtx = courses.find(c => c.id === id);
+      if (fromCtx) {
+        setLocalCourse(fromCtx);
+        return;
+      }
+
+      setLoading(true);
+      setError(null);
+      try {
+        const fetched = await fetchCourseById(id);
+        if (!mounted) return;
+        if (!fetched) {
+          setError('Formation non trouvée');
+        } else {
+          setLocalCourse(fetched as Course);
+        }
+      } catch (err) {
+        setError('Erreur lors du chargement de la formation');
+        console.error('Error fetching course detail:', err);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+
+    load();
+    return () => { mounted = false; };
+  }, [id, courses, fetchCourseById]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div>Chargement de la formation...</div>
+      </div>
+    );
+  }
+
+  if (error || !localCourse) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Formation non trouvée</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">{error ?? 'Formation non trouvée'}</h2>
           <Link to="/courses" className="text-blue-600 hover:text-blue-700">
             ← Retour aux formations
           </Link>
@@ -27,16 +79,43 @@ const CourseDetailPage: React.FC = () => {
     );
   }
 
-  const handleEnroll = () => {
-    if (user) {
-      enrollInCourse(course.id);
-    } else {
-      addToCart(course.id, 'course', 1);
+  const handleEnroll = async () => {
+    try {
+      if (user) {
+        await enrollInCourse(localCourse.id);
+        toast.showToast('Inscription réussie', {
+          label: 'Aller au cours',
+          onClick: () => navigate(`/dashboard?tab=courses&courseId=${encodeURIComponent(localCourse.id)}`),
+        });
+        navigate(`/dashboard?tab=courses&courseId=${encodeURIComponent(localCourse.id)}`);
+      } else {
+        await addToCart(localCourse.id, 'course', 1);
+        navigate('/cart');
+      }
+    } catch (error: unknown) {
+      console.error('Enrollment/Add to cart failed:', error);
+      const errMsg = ((error as { message?: string })?.message ?? '').toString();
+
+      // If backend responded that user is already enrolled (HTTP 409), treat as success
+      const lower = errMsg.toLowerCase();
+  if (lower.includes("d'eja") || lower.includes('déjà') || lower.includes('dej') || lower.includes('already enrolled')) {
+        // show the same success flow
+        toast.showToast('Inscription (déjà effectuée)', {
+          label: 'Aller au cours',
+          onClick: () => navigate(`/dashboard?tab=courses&courseId=${encodeURIComponent(localCourse.id)}`),
+        });
+        navigate(`/dashboard?tab=courses&courseId=${encodeURIComponent(localCourse.id)}`);
+        return;
+      }
+
+      const finalMsg = errMsg || 'Échec de l\'inscription';
+      alert(finalMsg);
     }
   };
 
   const handleLessonComplete = (lessonId: string) => {
-    markLessonComplete(course.id, lessonId);
+    if (!localCourse) return;
+    markLessonComplete(localCourse.id, lessonId);
   };
 
   return (
@@ -53,35 +132,35 @@ const CourseDetailPage: React.FC = () => {
             <div className="lg:col-span-2">
               <div className="mb-4">
                 <span className="bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-medium">
-                  {course.category}
+                  {localCourse.category}
                 </span>
               </div>
-              <h1 className="text-4xl font-bold mb-4">{course.title}</h1>
-              <p className="text-xl text-gray-300 mb-6">{course.description}</p>
+              <h1 className="text-4xl font-bold mb-4">{localCourse.title}</h1>
+              <p className="text-xl text-gray-300 mb-6">{localCourse.description}</p>
               
               <div className="flex items-center space-x-6 text-sm">
                 <div className="flex items-center">
                   <Star className="h-5 w-5 text-yellow-400 fill-current mr-1" />
-                  <span className="font-medium">{course.rating}</span>
-                  <span className="text-gray-300 ml-1">({course.studentsCount} étudiants)</span>
+                  <span className="font-medium">{localCourse.rating}</span>
+                  <span className="text-gray-300 ml-1">({localCourse.studentsCount} étudiants)</span>
                 </div>
                 <div className="flex items-center">
                   <Clock className="h-5 w-5 mr-1" />
-                  <span>{course.duration}</span>
+                  <span>{localCourse.duration}</span>
                 </div>
                 <div className="flex items-center">
                   <BookOpen className="h-5 w-5 mr-1" />
-                  <span>{course.lessons.length} leçons</span>
+                  <span>{localCourse.lessons.length} leçons</span>
                 </div>
                 <div>
                   <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-medium">
-                    {course.level}
+                    {localCourse.level}
                   </span>
                 </div>
               </div>
               
               <div className="mt-6">
-                <p className="text-gray-300">Instructeur: <span className="text-white font-medium">{course.instructor}</span></p>
+                <p className="text-gray-300">Instructeur: <span className="text-white font-medium">{localCourse.instructor}</span></p>
               </div>
             </div>
             
@@ -89,8 +168,8 @@ const CourseDetailPage: React.FC = () => {
               <div className="bg-white rounded-xl p-6 shadow-lg">
                 <div className="relative mb-6">
                   <img
-                    src={course.image}
-                    alt={course.title}
+                    src={localCourse.image}
+                    alt={localCourse.title}
                     className="w-full h-48 object-cover rounded-lg"
                   />
                   <div className="absolute inset-0 bg-black bg-opacity-40 rounded-lg flex items-center justify-center">
@@ -99,10 +178,10 @@ const CourseDetailPage: React.FC = () => {
                 </div>
                 
                 <div className="text-center mb-6">
-                  <div className="text-3xl font-bold text-gray-900 mb-2">{course.price}€</div>
-                  {course.isEnrolled ? (
+                  <div className="text-3xl font-bold text-gray-900 mb-2">{localCourse.price}€</div>
+                  {localCourse.isEnrolled ? (
                     <div className="bg-green-100 text-green-800 px-4 py-2 rounded-lg font-medium">
-                      ✓ Inscrit - Progression: {course.progress || 0}%
+                      ✓ Inscrit - Progression: {localCourse.progress || 0}%
                     </div>
                   ) : (
                     <button
@@ -153,7 +232,7 @@ const CourseDetailPage: React.FC = () => {
                 ].map(tab => (
                   <button
                     key={tab.id}
-                    onClick={() => setActiveTab(tab.id as any)}
+                    onClick={() => setActiveTab(tab.id as TabId)}
                     className={`py-4 px-1 border-b-2 font-medium text-sm ${
                       activeTab === tab.id
                         ? 'border-blue-500 text-blue-600'
@@ -170,7 +249,7 @@ const CourseDetailPage: React.FC = () => {
             {activeTab === 'overview' && (
               <div className="prose max-w-none">
                 <h3 className="text-2xl font-bold text-gray-900 mb-4">À propos de cette formation</h3>
-                <p className="text-gray-600 mb-6">{course.description}</p>
+                <p className="text-gray-600 mb-6">{localCourse.description}</p>
                 
                 <h4 className="text-xl font-bold text-gray-900 mb-4">Ce que vous apprendrez</h4>
                 <ul className="space-y-2">
@@ -194,7 +273,7 @@ const CourseDetailPage: React.FC = () => {
               <div>
                 <h3 className="text-2xl font-bold text-gray-900 mb-6">Programme du cours</h3>
                 <div className="space-y-4">
-                  {course.lessons.map((lesson, index) => (
+                  {localCourse.lessons.map((lesson, index) => (
                     <div key={lesson.id} className="bg-white border border-gray-200 rounded-lg p-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-4">
@@ -212,7 +291,7 @@ const CourseDetailPage: React.FC = () => {
                             <p className="text-sm text-gray-500">{lesson.duration}</p>
                           </div>
                         </div>
-                        {course.isEnrolled && (
+                        {localCourse.isEnrolled && (
                           <div className="flex items-center space-x-2">
                             <button
                               onClick={() => handleLessonComplete(lesson.id)}
@@ -262,7 +341,7 @@ const CourseDetailPage: React.FC = () => {
             <div className="bg-white rounded-xl p-6 shadow-lg sticky top-8">
               <h3 className="text-xl font-bold text-gray-900 mb-4">Formations similaires</h3>
               <div className="space-y-4">
-                {courses.filter(c => c.id !== course.id && c.category === course.category).slice(0, 3).map(similarCourse => (
+                {courses.filter(c => c.id !== localCourse.id && c.category === localCourse.category).slice(0, 3).map(similarCourse => (
                   <Link
                     key={similarCourse.id}
                     to={`/course/${similarCourse.id}`}

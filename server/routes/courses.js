@@ -1,6 +1,6 @@
 import express from 'express';
 import { db } from '../database/init.js';
-import { authenticateToken, requireAdmin } from '../middleware/auth.js';
+import { authenticateToken, requireAdmin, optionalAuthenticateToken } from '../middleware/auth.js';
 import multer from 'multer';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -8,21 +8,38 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Configuration de Multer pour l'upload d'images
+// Configuration de Multer pour l'upload d'images et vidéos
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, path.join(__dirname, '../uploads'));
   },
   filename: (req, file, cb) => {
-    cb(null, Date.now() + '-' + file.originalname);
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueSuffix + '-' + file.originalname);
   },
 });
-const upload = multer({ storage: storage });
+
+const fileFilter = (req, file, cb) => {
+  // Autoriser les images et vidéos
+  if (file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/')) {
+    cb(null, true);
+  } else {
+    cb(new Error('Type de fichier non supporté. Seules les images et vidéos sont autorisées.'), false);
+  }
+};
+
+const upload = multer({ 
+  storage: storage,
+  fileFilter: fileFilter,
+  limits: {
+    fileSize: 50 * 1024 * 1024, // 50MB max
+  }
+});
 
 const router = express.Router();
 
 // Obtenir toutes les formations
-router.get('/', (req, res) => {
+router.get('/', optionalAuthenticateToken, (req, res) => {
   const { category, level, search } = req.query;
   let query = `
     SELECT c.*, 
@@ -47,8 +64,8 @@ router.get('/', (req, res) => {
   }
 
   if (search) {
-    query += ' AND (c.title LIKE ? OR c.description LIKE ?)';
-    params.push(`%${search}%`, `%${search}%`);
+    query += ' AND (c.title LIKE ? OR c.description LIKE ? OR c.instructor LIKE ?)';
+    params.push(`%${search}%`, `%${search}%`, `%${search}%`);
   }
 
   query += ' GROUP BY c.id ORDER BY c.created_at DESC';
@@ -64,7 +81,7 @@ router.get('/', (req, res) => {
 });
 
 // Obtenir une formation par ID
-router.get('/:id', (req, res) => {
+router.get('/:id', optionalAuthenticateToken, (req, res) => {
   const courseId = req.params.id;
   const userId = req.user?.id || null;
 
@@ -210,74 +227,340 @@ function updateCourseProgress(userId, courseId) {
 }
 
 // Routes d'administration (Admin only)
+
 // Création d'une formation (Admin only)
-router.post('/', authenticateToken, requireAdmin, upload.single('image'), (req, res) => {
-  const { title, description, instructor, price, duration, level, category } = req.body;
-  const image = req.file ? `/uploads/${req.file.filename}` : req.body.image;
+router.post('/', authenticateToken, requireAdmin, upload.fields([
+  { name: 'image', maxCount: 1 },
+  { name: 'lessonVideos', maxCount: 50 }
+]), (req, res) => {
+  try {
+    console.log('📥 Requête de création de formation reçue');
+    console.log('📋 Corps de la requête:', req.body);
+    console.log('📁 Fichiers reçus:', req.files);
 
-  const query = `
-    INSERT INTO courses (title, description, instructor, price, image, duration, level, category)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `;
-  const params = [title, description, instructor, price, image, duration, level, category];
-
-  db.run(query, params, function(err) {
-    if (err) {
-      console.error('Erreur lors de la création de la formation:', err);
-      return res.status(500).json({ message: 'Erreur interne du serveur' });
+    // Validation des champs requis
+    const { title, description, instructor, price: rawPrice, duration, level, category } = req.body;
+    
+    if (!title || !description || !instructor || !duration || !level || !category) {
+      return res.status(400).json({ 
+        message: 'Tous les champs sont obligatoires: titre, description, instructeur, durée, niveau, catégorie' 
+      });
     }
 
-    res.status(201).json({
-      message: 'Formation créée avec succès',
-      courseId: this.lastID
+    // Gestion de l'image
+    let image = null;
+    if (req.files && req.files.image && req.files.image[0]) {
+      image = `/uploads/${req.files.image[0].filename}`;
+    } else if (req.body.image) {
+      image = req.body.image;
+    } else if (req.body.imageUrl) {
+      image = req.body.imageUrl;
+    }
+
+    if (!image) {
+      return res.status(400).json({ message: 'Une image est requise' });
+    }
+
+    // Validation du prix
+    const price = parseFloat(rawPrice);
+    if (isNaN(price) || price < 0) {
+      return res.status(400).json({ message: 'Prix invalide' });
+    }
+
+    const query = `
+      INSERT INTO courses (title, description, instructor, price, image, duration, level, category, students_count)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)
+    `;
+    const params = [title, description, instructor, price, image, duration, level, category];
+
+    console.log('💾 Insertion du cours en base...');
+    
+    db.run(query, params, function(err) {
+      if (err) {
+        console.error('❌ Erreur lors de la création de la formation:', err);
+        return res.status(500).json({ message: 'Erreur interne du serveur lors de la création du cours' });
+      }
+
+      const courseId = this.lastID;
+      console.log(`✅ Cours créé avec ID: ${courseId}`);
+
+      // Traitement des leçons
+      let lessonsMeta = [];
+      
+      // Essayer de parser les leçons depuis le corps de la requête
+      if (req.body.lessons && typeof req.body.lessons === 'string') {
+        try {
+          lessonsMeta = JSON.parse(req.body.lessons);
+        } catch (parseErr) {
+          console.warn('⚠️ Impossible de parser lessons JSON, utilisation de la structure alternative');
+        }
+      } else if (Array.isArray(req.body.lessons)) {
+        lessonsMeta = req.body.lessons;
+      }
+
+      // Si pas de leçons fournies, répondre directement
+      if (!Array.isArray(lessonsMeta) || lessonsMeta.length === 0) {
+        console.log('ℹ️ Aucune leçon fournie');
+        return res.status(201).json({ 
+          message: 'Formation créée avec succès', 
+          courseId 
+        });
+      }
+
+      console.log(`📚 ${lessonsMeta.length} leçon(s) à créer`);
+
+      // Récupérer les fichiers vidéo
+      const lessonFiles = (req.files && req.files.lessonVideos) || [];
+      console.log(`🎥 ${lessonFiles.length} fichier(s) vidéo reçu(s)`);
+
+      // Insérer les leçons une par une
+      const insertNextLesson = (index) => {
+        if (index >= lessonsMeta.length) {
+          console.log('✅ Toutes les leçons créées avec succès');
+          return res.status(201).json({ 
+            message: 'Formation et leçons créées avec succès', 
+            courseId 
+          });
+        }
+
+        const lesson = lessonsMeta[index];
+        if (!lesson.title || !lesson.duration) {
+          console.warn(`⚠️ Leçon ${index} ignorée: titre ou durée manquant`);
+          return insertNextLesson(index + 1);
+        }
+
+        // Trouver le fichier vidéo correspondant
+        let videoFile = null;
+        if (lessonFiles.length > index) {
+          videoFile = lessonFiles[index];
+        }
+
+        const videoUrl = videoFile ? `/uploads/${videoFile.filename}` : (lesson.videoUrl || lesson.video_url || null);
+        const orderIndex = lesson.order_index || lesson.orderIndex || index + 1;
+
+        console.log(`💾 Insertion leçon ${index + 1}: "${lesson.title}"`);
+
+        db.run(
+          'INSERT INTO lessons (course_id, title, duration, video_url, order_index) VALUES (?, ?, ?, ?, ?)',
+          [courseId, lesson.title, lesson.duration, videoUrl, orderIndex],
+          function(err) {
+            if (err) {
+              console.error(`❌ Erreur lors de la création de la leçon ${index + 1}:`, err);
+              // Continuer avec les leçons suivantes malgré l'erreur
+            } else {
+              console.log(`✅ Leçon ${index + 1} créée avec ID: ${this.lastID}`);
+            }
+            insertNextLesson(index + 1);
+          }
+        );
+      };
+
+      insertNextLesson(0);
+    });
+
+  } catch (error) {
+    console.error('💥 Erreur inattendue lors de la création de la formation:', error);
+    return res.status(500).json({ message: 'Erreur interne du serveur' });
+  }
+});
+
+// Mise à jour d'une formation (Admin only)
+router.put('/:id', authenticateToken, requireAdmin, upload.fields([
+  { name: 'image', maxCount: 1 },
+  { name: 'lessonVideos', maxCount: 50 }
+]), (req, res) => {
+  const courseId = req.params.id;
+  
+  try {
+    console.log(`📥 Requête de mise à jour du cours ${courseId} reçue`);
+    console.log('📋 Corps de la requête:', req.body);
+    console.log('📁 Fichiers reçus:', req.files);
+
+    // Récupérer le cours existant
+    db.get('SELECT * FROM courses WHERE id = ?', [courseId], (getErr, existingCourse) => {
+      if (getErr) {
+        console.error('❌ Erreur lors de la lecture du cours existant:', getErr);
+        return res.status(500).json({ message: 'Erreur interne du serveur' });
+      }
+
+      if (!existingCourse) {
+        return res.status(404).json({ message: 'Formation non trouvée' });
+      }
+
+      console.log('📖 Cours existant trouvé:', existingCourse.title);
+
+      // Fusionner les données avec les valeurs existantes
+      const {
+        title = existingCourse.title,
+        description = existingCourse.description,
+        instructor = existingCourse.instructor,
+        price: priceRaw,
+        duration = existingCourse.duration,
+        level = existingCourse.level,
+        category = existingCourse.category,
+      } = req.body;
+
+      // Gestion de l'image
+      let image = existingCourse.image;
+      if (req.files && req.files.image && req.files.image[0]) {
+        image = `/uploads/${req.files.image[0].filename}`;
+        console.log('🖼️ Nouvelle image uploadée:', image);
+      } else if (req.body.image && req.body.image !== 'null' && req.body.image !== 'undefined') {
+        image = req.body.image;
+        console.log('🖼️ Image mise à jour via URL:', image);
+      }
+
+      // Validation du prix
+      const price = typeof priceRaw !== 'undefined' && priceRaw !== null && priceRaw !== '' 
+        ? parseFloat(priceRaw) 
+        : existingCourse.price;
+
+      if (isNaN(price) || price < 0) {
+        return res.status(400).json({ message: 'Prix invalide' });
+      }
+
+      const query = `
+        UPDATE courses 
+        SET title = ?, description = ?, instructor = ?, price = ?, image = ?,
+            duration = ?, level = ?, category = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `;
+      const params = [title, description, instructor, price, image, duration, level, category, courseId];
+
+      console.log('💾 Mise à jour du cours en base...');
+      
+      db.run(query, params, function(err) {
+        if (err) {
+          console.error('❌ Erreur lors de la mise à jour de la formation:', err);
+          return res.status(500).json({ message: 'Erreur interne du serveur lors de la mise à jour' });
+        }
+
+        if (this.changes === 0) {
+          return res.status(404).json({ message: 'Formation non trouvée' });
+        }
+
+        console.log('✅ Cours mis à jour avec succès');
+
+        // Traitement des leçons si fournies
+        let lessonsMeta = [];
+        
+        if (req.body.lessons && typeof req.body.lessons === 'string') {
+          try {
+            lessonsMeta = JSON.parse(req.body.lessons);
+          } catch (parseErr) {
+            console.warn('⚠️ Impossible de parser lessons JSON pour la mise à jour');
+          }
+        } else if (Array.isArray(req.body.lessons)) {
+          lessonsMeta = req.body.lessons;
+        }
+
+        if (Array.isArray(lessonsMeta) && lessonsMeta.length > 0) {
+          console.log(`📚 Mise à jour de ${lessonsMeta.length} leçon(s)`);
+          updateLessons(courseId, lessonsMeta, req.files, res);
+        } else {
+          res.json({ message: 'Formation mise à jour avec succès' });
+        }
+      });
+    });
+
+  } catch (error) {
+    console.error('💥 Erreur inattendue lors de la mise à jour de la formation:', error);
+    return res.status(500).json({ message: 'Erreur interne du serveur' });
+  }
+});
+
+// Fonction pour mettre à jour les leçons
+function updateLessons(courseId, lessonsMeta, files, res) {
+  // Supprimer les leçons existantes
+  db.run('DELETE FROM lessons WHERE course_id = ?', [courseId], (deleteErr) => {
+    if (deleteErr) {
+      console.error('❌ Erreur lors de la suppression des anciennes leçons:', deleteErr);
+      return res.status(500).json({ message: 'Erreur lors de la mise à jour des leçons' });
+    }
+
+    console.log('🗑️ Anciennes leçons supprimées');
+
+    const lessonFiles = (files && files.lessonVideos) || [];
+
+    // Insérer les nouvelles leçons
+    const insertNextLesson = (index) => {
+      if (index >= lessonsMeta.length) {
+        console.log('✅ Toutes les leçons mises à jour avec succès');
+        return res.json({ message: 'Formation et leçons mises à jour avec succès' });
+      }
+
+      const lesson = lessonsMeta[index];
+      if (!lesson.title || !lesson.duration) {
+        console.warn(`⚠️ Leçon ${index} ignorée: titre ou durée manquant`);
+        return insertNextLesson(index + 1);
+      }
+
+      let videoFile = null;
+      if (lessonFiles.length > index) {
+        videoFile = lessonFiles[index];
+      }
+
+      const videoUrl = videoFile ? `/uploads/${videoFile.filename}` : (lesson.videoUrl || lesson.video_url || null);
+      const orderIndex = lesson.order_index || lesson.orderIndex || index + 1;
+
+      db.run(
+        'INSERT INTO lessons (course_id, title, duration, video_url, order_index) VALUES (?, ?, ?, ?, ?)',
+        [courseId, lesson.title, lesson.duration, videoUrl, orderIndex],
+        function(err) {
+          if (err) {
+            console.error(`❌ Erreur lors de la création de la leçon ${index + 1}:`, err);
+          } else {
+            console.log(`✅ Leçon ${index + 1} créée: "${lesson.title}"`);
+          }
+          insertNextLesson(index + 1);
+        }
+      );
+    };
+
+    insertNextLesson(0);
+  });
+}
+
+// Supprimer une formation (Admin only)
+router.delete('/:id', authenticateToken, requireAdmin, (req, res) => {
+  const courseId = req.params.id;
+
+  // Commencer une transaction
+  db.serialize(() => {
+    // Supprimer les complétions de leçons
+    db.run('DELETE FROM lesson_completions WHERE lesson_id IN (SELECT id FROM lessons WHERE course_id = ?)', [courseId]);
+    
+    // Supprimer les inscriptions
+    db.run('DELETE FROM enrollments WHERE course_id = ?', [courseId]);
+    
+    // Supprimer les leçons
+    db.run('DELETE FROM lessons WHERE course_id = ?', [courseId]);
+    
+    // Supprimer le cours
+    db.run('DELETE FROM courses WHERE id = ?', [courseId], function(err) {
+      if (err) {
+        console.error('Erreur lors de la suppression de la formation:', err);
+        return res.status(500).json({ message: 'Erreur interne du serveur' });
+      }
+
+      if (this.changes === 0) {
+        return res.status(404).json({ message: 'Formation non trouvée' });
+      }
+
+      res.json({ message: 'Formation supprimée avec succès' });
     });
   });
 });
 
-
-// Mise à jour d'une formation (Admin only)
-router.put('/:id', authenticateToken, requireAdmin, upload.single('image'), (req, res) => {
-  const courseId = req.params.id;
-  const { title, description, instructor, price, duration, level, category } = req.body;
-  const image = req.file ? `/uploads/${req.file.filename}` : req.body.image;
-
-  const query = `
-    UPDATE courses
-    SET title = ?, description = ?, instructor = ?, price = ?, image = ?,
-        duration = ?, level = ?, category = ?, updated_at = CURRENT_TIMESTAMP
-    WHERE id = ?
-  `;
-  const params = [title, description, instructor, price, image, duration, level, category, courseId];
-
-  db.run(query, params, function(err) {
-    if (err) {
-      console.error('Erreur lors de la mise à jour de la formation:', err);
-      return res.status(500).json({ message: 'Erreur interne du serveur' });
+// Middleware de gestion d'erreurs pour Multer
+router.use((error, req, res, next) => {
+  if (error instanceof multer.MulterError) {
+    if (error.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({ message: 'Fichier trop volumineux' });
     }
-
-    if (this.changes === 0) {
-      return res.status(404).json({ message: 'Formation non trouvée' });
-    }
-
-    res.json({ message: 'Formation mise à jour avec succès' });
-  });
-});
-
-router.delete('/:id', authenticateToken, requireAdmin, (req, res) => {
-  const courseId = req.params.id;
-
-  db.run('DELETE FROM courses WHERE id = ?', [courseId], function(err) {
-    if (err) {
-      console.error('Erreur lors de la suppression de la formation:', err);
-      return res.status(500).json({ message: 'Erreur interne du serveur' });
-    }
-
-    if (this.changes === 0) {
-      return res.status(404).json({ message: 'Formation non trouvée' });
-    }
-
-    res.json({ message: 'Formation supprimée avec succès' });
-  });
+    return res.status(400).json({ message: `Erreur Multer: ${error.message}` });
+  }
+  next(error);
 });
 
 export default router;

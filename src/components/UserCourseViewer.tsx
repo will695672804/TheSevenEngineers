@@ -26,9 +26,16 @@ const UserCourseViewer: React.FC<UserCourseViewerProps> = ({ course, onBack }) =
   const completedLessons = course.lessons.filter(lesson => lesson.isCompleted).length;
   const progressPercentage = Math.round((completedLessons / course.lessons.length) * 100);
 
-  const handleLessonComplete = () => {
+  const handleLessonComplete = async () => {
     if (currentLesson && !currentLesson.isCompleted) {
-      markLessonComplete(course.id, currentLesson.id);
+      try {
+        await markLessonComplete(course.id, currentLesson.id);
+        // refresh local view by fetching course again via useCourses.fetchCourseById is not available here
+        // parent passes an up-to-date course when opened; optimistic update: mark lesson locally
+        currentLesson.isCompleted = true; // mutate local for immediate UI feedback
+      } catch (err) {
+        console.error('Failed to mark lesson complete:', err);
+      }
     }
   };
 
@@ -92,17 +99,28 @@ const UserCourseViewer: React.FC<UserCourseViewerProps> = ({ course, onBack }) =
                   className="w-full h-full"
                   controls
                   poster={course.image}
+                  onError={(e) => {
+                    console.warn('Video failed to load for lesson', currentLesson.id, e);
+                    // fallback to a local sample if available
+                    const videoEl = e.currentTarget as HTMLVideoElement;
+                    const fallback = '/videos/sample-fallback.mp4';
+                    if (videoEl && videoEl.currentSrc !== fallback) {
+                      videoEl.src = fallback;
+                      videoEl.load();
+                    }
+                  }}
                 >
                   <source src={currentLesson.videoUrl} type="video/mp4" />
                   Votre navigateur ne supporte pas la lecture vidéo.
                 </video>
               ) : (
-                <div className="flex items-center justify-center h-full text-white">
-                  <div className="text-center">
-                    <Play className="h-16 w-16 mx-auto mb-4 opacity-50" />
-                    <p className="text-lg">Vidéo de démonstration</p>
-                    <p className="text-sm opacity-75">La vidéo sera disponible prochainement</p>
-                  </div>
+                <div className="h-full w-full bg-black">
+                  {/* Affiche la vignette du cours quand aucune vidéo n'est disponible. */}
+                  <img
+                    src={course.image}
+                    alt={currentLesson?.title || course.title}
+                    className="w-full h-full object-cover"
+                  />
                 </div>
               )}
             </div>

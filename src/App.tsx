@@ -18,6 +18,7 @@ import { CartProvider } from './contexts/CartContext';
 import { CoursesProvider } from './contexts/CoursesContext';
 import { ProductsProvider } from './contexts/ProductsContext';
 import { MessagingProvider } from './contexts/MessagingContext';
+import { ToastProvider } from './contexts/ToastContext';
 
 function AppContent() {
   const { user } = useAuth();
@@ -62,17 +63,19 @@ function AppContent() {
 function App() {
   return (
     <Router>
-      <AuthProvider>
-        <CartProvider>
-          <CoursesProvider>
-            <ProductsProvider>
-              <MessagingProvider>
-                <AppContent />
-              </MessagingProvider>
-            </ProductsProvider>
-          </CoursesProvider>
-        </CartProvider>
-      </AuthProvider>
+      <ToastProvider>
+        <AuthProvider>
+          <CartProvider>
+            <CoursesProvider>
+              <ProductsProvider>
+                <MessagingProvider>
+                  <AppContent />
+                </MessagingProvider>
+              </ProductsProvider>
+            </CoursesProvider>
+          </CartProvider>
+        </AuthProvider>
+      </ToastProvider>
     </Router>
   );
 }

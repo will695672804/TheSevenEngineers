@@ -20,6 +20,22 @@ const authenticateToken = (req, res, next) => {
   });
 };
 
+// Middleware optionnel : si Authorization présent et valide, définit req.user; sinon continue sans erreur
+const optionalAuthenticateToken = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+  if (!token) return next();
+
+  jwt.verify(token, JWT_SECRET, (err, user) => {
+    if (!err) {
+      req.user = user;
+    } else {
+      console.warn('Optional auth: invalid token provided');
+    }
+    next();
+  });
+};
+
 const requireAdmin = (req, res, next) => {
   if (req.user.role !== 'admin') {
     return res.status(403).json({ message: 'Accès administrateur requis' });
@@ -27,4 +43,4 @@ const requireAdmin = (req, res, next) => {
   next();
 };
 
-export { authenticateToken, requireAdmin, JWT_SECRET };
+export { authenticateToken, requireAdmin, optionalAuthenticateToken, JWT_SECRET };

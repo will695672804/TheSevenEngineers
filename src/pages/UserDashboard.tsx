@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { User, BookOpen, ShoppingBag, Settings, Award, Clock } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useCourses } from '../contexts/CoursesContext';
@@ -7,11 +8,12 @@ import { apiService } from '../services/api';
 
 const UserDashboard: React.FC = () => {
   const { user } = useAuth();
-  const { courses, fetchCourses } = useCourses();
+  const { courses, fetchCourses, fetchCourseById } = useCourses();
   const [profileData, setProfileData] = useState({ name: user?.name || '', email: user?.email || '', phone: '', address: '' });
-  const [userOrders, setUserOrders] = useState<any[]>([]);
+  const [userOrders, setUserOrders] = useState<Array<{ id: string; items_summary?: string; total_amount?: number; status?: string; created_at?: string }>>([]);
   const [activeTab, setActiveTab] = useState<'overview' | 'courses' | 'orders' | 'profile'>('overview');
-  const [selectedCourseForViewing, setSelectedCourseForViewing] = useState<any>(null);
+  const [selectedCourseForViewing, setSelectedCourseForViewing] = useState<null | import('../contexts/CoursesContext').Course>(null);
+  const location = useLocation();
 
   const enrolledCourses = courses.filter(course => course.isEnrolled);
   const completedCourses = enrolledCourses.filter(course => course.progress === 100);
@@ -46,7 +48,24 @@ const UserDashboard: React.FC = () => {
       }
     };
     loadProfileAndOrders();
-  }, [user, fetchCourses]);
+
+    // Read query params to open a specific tab or course viewer (e.g. after enrolling)
+    const params = new URLSearchParams(location.search);
+    const tabParam = params.get('tab');
+    const courseIdParam = params.get('courseId');
+    if (tabParam === 'courses') setActiveTab('courses');
+    if (courseIdParam) {
+      // fetch the full course details and open viewer
+      (async () => {
+        try {
+          const full = await fetchCourseById(courseIdParam);
+          if (full) setSelectedCourseForViewing(full);
+        } catch (err) {
+          console.error('Failed to fetch course for viewer:', err);
+        }
+      })();
+    }
+  }, [user, fetchCourses, fetchCourseById, location.search]);
 
   const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -283,7 +302,7 @@ const UserDashboard: React.FC = () => {
                               </span>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              {new Date(order.created_at).toLocaleDateString()}
+                              {new Date(order.created_at ?? Date.now()).toLocaleDateString()}
                             </td>
                           </tr>
                         ))}

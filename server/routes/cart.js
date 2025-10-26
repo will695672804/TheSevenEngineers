@@ -182,4 +182,56 @@ router.delete('/clear', authenticateToken, (req, res) => {
   );
 });
 
+// Fusionner un panier invité (guest) avec le panier utilisateur connecté
+router.post('/merge', authenticateToken, (req, res) => {
+  const userId = req.user.id;
+  const { items } = req.body; // items: [{ itemId, itemType, quantity }]
+
+  if (!Array.isArray(items)) {
+    return res.status(400).json({ message: 'Données invalides pour la fusion du panier' });
+  }
+
+  const promises = items.map(item => {
+    return new Promise((resolve, reject) => {
+      // Vérifier si l'élément existe déjà
+      db.get(
+        'SELECT id FROM cart_items WHERE user_id = ? AND item_id = ? AND item_type = ?',
+        [userId, item.itemId, item.itemType],
+        (err, existing) => {
+          if (err) return reject(err);
+
+          if (existing) {
+            // Mettre à jour la quantité
+            db.run(
+              'UPDATE cart_items SET quantity = quantity + ? WHERE id = ?',
+              [item.quantity || 1, existing.id],
+              (err) => {
+                if (err) reject(err);
+                else resolve();
+              }
+            );
+          } else {
+            // Insérer nouvel élément
+            db.run(
+              'INSERT INTO cart_items (user_id, item_id, item_type, quantity) VALUES (?, ?, ?, ?)',
+              [userId, item.itemId, item.itemType, item.quantity || 1],
+              (err) => {
+                if (err) reject(err);
+                else resolve();
+              }
+            );
+          }
+        }
+      );
+    });
+  });
+
+  Promise.all(promises)
+    .then(() => res.json({ message: 'Panier fusionné avec succès' }))
+    .catch(err => {
+      console.error('Erreur lors de la fusion du panier:', err);
+      res.status(500).json({ message: 'Erreur interne lors de la fusion du panier' });
+    });
+});
+
 export default router;

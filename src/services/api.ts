@@ -15,11 +15,13 @@ class ApiService {
     options: RequestInit = {}
   ): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
-    
+    // Read token from instance or fallback to localStorage to avoid race conditions
+    const effectiveToken = this.token ?? localStorage.getItem('token');
+
     const config: RequestInit = {
       headers: {
-        ...(options.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }), // Ne pas définir Content-Type pour FormData
-        ...(this.token && { Authorization: `Bearer ${this.token}` }),
+        ...(options.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
+        ...(effectiveToken ? { Authorization: `Bearer ${effectiveToken}` } : {}),
         ...options.headers,
       },
       ...options,
@@ -29,11 +31,18 @@ class ApiService {
       const response = await fetch(url, config);
       
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+        // Tentative de récupération du message d'erreur
+        let errorMessage = `HTTP error! status: ${response.status}`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorData.error || errorMessage;
+        } catch {
+          // Si la réponse n'est pas du JSON, utiliser le statut
+        }
+        throw new Error(errorMessage);
       }
 
-      return response.status === 204 ? {} as T : await response.json(); // Gérer les réponses sans contenu
+      return response.status === 204 ? {} as T : await response.json();
     } catch (error) {
       console.error('API Request failed:', error);
       throw error;
@@ -185,6 +194,13 @@ class ApiService {
     });
   }
 
+  async mergeGuestCart(items: { itemId: string; itemType: 'course' | 'product'; quantity?: number }[]) {
+    return this.request('/cart/merge', {
+      method: 'POST',
+      body: JSON.stringify({ items }),
+    });
+  }
+
   // Orders endpoints
   async createOrder(paymentMethod: string, shippingAddress?: string) {
     return this.request('/orders', {
@@ -282,6 +298,7 @@ class ApiService {
     return this.request('/health');
   }
 }
+
 
 export const apiService = new ApiService(API_BASE_URL);
 export default apiService;
